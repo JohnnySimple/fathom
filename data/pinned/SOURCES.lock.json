@@ -1,0 +1,107 @@
+{
+  "nist_content_ref": "main",
+  "oscal_version": "1.2.3",
+  "scubagear_tag": "v1.8.0",
+  "sources": {
+    "nist/NIST_SP-800-53_rev5_HIGH-baseline-resolved-profile_catalog-min.json": {
+      "bytes": 2155167,
+      "sha256": "778d87c6cd1c2aa227600fb172af128d65ebe002b2bace0af6c0b1dc3815a0f8",
+      "url": "https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_HIGH-baseline-resolved-profile_catalog-min.json"
+    },
+    "oscal/schemas/oscal_assessment-plan_schema.json": {
+      "bytes": 144952,
+      "sha256": "ea687b9d0ab1d84c9cb11ee0a5e22b17956fe892ee93f5acca937bef81d23ea2",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_assessment-plan_schema.json"
+    },
+    "oscal/schemas/oscal_assessment-results_schema.json": {
+      "bytes": 152214,
+      "sha256": "4034e2032332dbf597e59e0646ec16c2c31df992962490371e91f47b219ff42c",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_assessment-results_schema.json"
+    },
+    "oscal/schemas/oscal_catalog_schema.json": {
+      "bytes": 55199,
+      "sha256": "ab95836e9e8dfeb6fde80007f6cc76fa3192f595d427c751a3f3923c3f474fc2",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_catalog_schema.json"
+    },
+    "oscal/schemas/oscal_poam_schema.json": {
+      "bytes": 148253,
+      "sha256": "f4fd94487408a9589954b5b92d88965c984d4f79b85365cc574b860898759437",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_poam_schema.json"
+    },
+    "oscal/schemas/oscal_profile_schema.json": {
+      "bytes": 68516,
+      "sha256": "7c5ff5a92683b6a80ce6a3474dea04e0ea8680a4ecb60702ffa08ebfc677e6cb",
+      "url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal_profile_schema.json"
+    },
+    "scubagear/baselines/aad.md": {
+      "bytes": 63212,
+      "sha256": "080e670d321e80ceb5f010673e07934c01cb75eab2ae57b2a546f4248ae77cd1",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/baselines/aad.md"
+    },
+    "scubagear/baselines/defender.md": {
+      "bytes": 53803,
+      "sha256": "a4305bb74c85acc39dbb389e3fa895a90af62ac2eb4551741fd9e77abd68a086",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/baselines/defender.md"
+    },
+    "scubagear/baselines/exo.md": {
+      "bytes": 75251,
+      "sha256": "6b7f8072b0453146a7498cdacfa2cd135f4a9cba12042e9fb9a3404afd16f0c1",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/baselines/exo.md"
+    },
+    "scubagear/baselines/powerplatform.md": {
+      "bytes": 26860,
+      "sha256": "08edf019407e6a7e0c2f73e030147af0e01a01807efec4b797c5fd78cb36956f",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/baselines/powerplatform.md"
+    },
+    "scubagear/baselines/sharepoint.md": {
+      "bytes": 16032,
+      "sha256": "012e7e43be95cef77ea798197c82394bacb14f74a69dd45f633287b78cd149b1",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/baselines/sharepoint.md"
+    },
+    "scubagear/baselines/teams.md": {
+      "bytes": 42278,
+      "sha256": "571959c26d68b1e04b293f29b0cf7728e6ed2e3b962c9c5ed877d0a6476df68d",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/baselines/teams.md"
+    },
+    "scubagear/mappings/scuba-to-nist-800-53-r5-fedramp-high.csv": {
+      "bytes": 3584,
+      "sha256": "9901d1373bed5cff4541359ece9b45cd73a50c9f4f6fe07a56fb0af037ec2d5f",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/mappings/scuba-to-nist-sp-800-53-r5-fedramp-high.csv"
+    },
+    "scubagear/rego/AADConfig.rego": {
+      "bytes": 43172,
+      "sha256": "2bb771ead81c732bbdeafb0f65068a0834e06b4d5195b9801caccaa3cc2ecc8f",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/Rego/AADConfig.rego"
+    },
+    "scubagear/rego/EXOConfig.rego": {
+      "bytes": 29171,
+      "sha256": "076cb74094a90fc06c172e713b060f004cadd449af7aa743ac4662838bee8f29",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/Rego/EXOConfig.rego"
+    },
+    "scubagear/rego/Utils/AAD.rego": {
+      "bytes": 11058,
+      "sha256": "6d9357ddd4c21fd3aef81c094530361189e3f9ef06be6f9600fec48845860113",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/Rego/Utils/AAD.rego"
+    },
+    "scubagear/rego/Utils/Defender.rego": {
+      "bytes": 9165,
+      "sha256": "15ab400bfbcef3fea80a4d7b643a371fb5d5897c8cd5882a67280c1b167808c6",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/Rego/Utils/Defender.rego"
+    },
+    "scubagear/rego/Utils/KeyFunctions.rego": {
+      "bytes": 2792,
+      "sha256": "0b8c6b5cec49222e679d1e74932b3efbd892e775789d9dd69262704dcba5aa3e",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/Rego/Utils/KeyFunctions.rego"
+    },
+    "scubagear/rego/Utils/ReportDetails.rego": {
+      "bytes": 3463,
+      "sha256": "15c919ee12a89181064ea9424979e9b818159f5a349a7d9d433a1b95e10b43ca",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/Rego/Utils/ReportDetails.rego"
+    },
+    "scubagear/samples/ScubaResults_fa5589b7-d528-4f80.json": {
+      "bytes": 1919694,
+      "sha256": "8746a9ea9142d04ed80f957bf6cdc57e950da6fa9def1b1f16b79886311dee64",
+      "url": "https://raw.githubusercontent.com/cisagov/ScubaGear/v1.8.0/PowerShell/ScubaGear/Sample-Reports/ScubaResults_fa5589b7-d528-4f80.json"
+    }
+  }
+}

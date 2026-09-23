@@ -1,0 +1,21 @@
+{
+  "$comment": "FATHOM EDITORIAL JUDGEMENT -- NOT a CISA or MITRE publication.",
+  "basis": "The project specification defines the risk score in terms of 'high-impact techniques' but does not enumerate them. Fathom therefore commits an explicit, versioned list rather than letting the value float. A technique is treated as high-impact when its successful use either (a) yields or manipulates identity, credentials, or privilege in the tenant, or (b) destroys or denies access to tenant data. Every ID below is a real MITRE ATT&CK technique that CISA's SCuBA baselines actually reference, so the list introduces no techniques of Fathom's own invention. Edit this file to retune the score; it is data, never model output.",
+  "version": "1.0.0",
+  "techniques": {
+    "T1070": "Indicator Removal",
+    "T1078": "Valid Accounts",
+    "T1098": "Account Manipulation",
+    "T1110": "Brute Force",
+    "T1136": "Create Account",
+    "T1199": "Trusted Relationship",
+    "T1485": "Data Destruction",
+    "T1486": "Data Encrypted for Impact",
+    "T1528": "Steal Application Access Token",
+    "T1556": "Modify Authentication Process",
+    "T1562": "Impair Defenses",
+    "T1586": "Compromise Accounts",
+    "T1621": "Multi-Factor Authentication Request Generation",
+    "T1651": "Cloud Administration Command"
+  }
+}

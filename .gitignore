@@ -1,0 +1,28 @@
+# Pinned upstream sources are fetched, not vendored. SOURCES.lock.json pins the
+# exact bytes, so the build stays reproducible without committing ~5 MB of
+# CISA and NIST files.
+data/pinned/*
+!data/pinned/SOURCES.lock.json
+
+# Compiled output and the local store
+artifacts/
+*.db
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
