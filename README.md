@@ -171,11 +171,3 @@ docs/          MAPPING.md · SECURITY.md · DATA_PROVENANCE.md · PLAN.md
 - [Data provenance](docs/DATA_PROVENANCE.md) — real CISA output vs. fixtures
 - [Implementation plan](docs/PLAN.md) — what is built and what is not
 
-## Not built yet
-
-What-If (OPA re-running CISA's Rego), the Blast Radius graph screen, the
-40-question eval scoreboard, drift, and report export. The graph API and
-`diff_runs` already work; see [docs/PLAN.md](docs/PLAN.md).
-
-Deliberately out of scope, per the specification: authentication, an OSCAL
-editor, multi-tenant views, fine-tuning, and running ScubaGear live.
