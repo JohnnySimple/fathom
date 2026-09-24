@@ -13,6 +13,10 @@ dependencies = [
     "PyYAML>=6.0",
     "Jinja2>=3.1",
     "httpx>=0.27",
+    # Loads .env in config.py. Declared explicitly: it arrives transitively via
+    # uvicorn[standard] today, and depending on that is how configuration breaks
+    # the day someone installs without the [standard] extra.
+    "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]

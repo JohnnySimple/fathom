@@ -9,8 +9,22 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # backend/fathom/config.py -> repo root
 ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Load the repo-root .env into the process environment.
+#
+# Nothing reads a .env file implicitly -- os.getenv only sees variables the
+# process was started with -- so without this every AZURE_OPENAI_* lookup below
+# returns None and the analyst silently drops to grounded mode.
+#
+# Anchored to ROOT rather than the working directory so `fathom serve`, pytest
+# and an editor's test runner all find the same file. override=False means a
+# real exported variable still wins over the file, which is what CI and a
+# container will set.
+load_dotenv(ROOT / ".env", override=False)
 
 PINNED = ROOT / "data" / "pinned"
 FIXTURES = ROOT / "data" / "fixtures"
@@ -43,6 +57,25 @@ ALL_PRODUCTS = ["AAD", "DEFENDER", "EXO", "POWERPLATFORM", "SHAREPOINT", "TEAMS"
 SAMPLE_SCAN = SAMPLE_DIR / "ScubaResults_fa5589b7-d528-4f80.json"
 
 
+def _normalize_azure_endpoint(value: str | None) -> str | None:
+    """Reduce an Azure endpoint to the bare resource origin.
+
+    The Azure portal now shows the v1-API form
+    `https://<resource>.openai.azure.com/openai/v1`, but `AzureOpenAI` expects
+    only `https://<resource>.openai.azure.com` and appends its own
+    `/openai/deployments/...` path. Pasting the portal value verbatim yields a
+    bare 404 ("Resource not found") that looks identical to a bad key, so the
+    suffix is trimmed here rather than left as a trap.
+    """
+    if not value:
+        return None
+    endpoint = value.strip().rstrip("/")
+    marker = "/openai"
+    if marker in endpoint:
+        endpoint = endpoint[: endpoint.index(marker)]
+    return endpoint or None
+
+
 @dataclass(frozen=True)
 class LLMSettings:
     """Azure OpenAI configuration, per the project specification.
@@ -65,7 +98,7 @@ class LLMSettings:
 
 def llm_settings() -> LLMSettings:
     return LLMSettings(
-        endpoint=os.getenv("AZURE_OPENAI_ENDPOINT") or None,
+        endpoint=_normalize_azure_endpoint(os.getenv("AZURE_OPENAI_ENDPOINT")),
         api_key=os.getenv("AZURE_OPENAI_API_KEY") or None,
         deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
         api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
