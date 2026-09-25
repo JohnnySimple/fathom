@@ -97,7 +97,7 @@ export default function AskPage() {
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !busy && ask()}
             placeholder="Ask about this tenant's posture…"
-            className="flex-1 rounded-lg border border-edge bg-ink px-3 py-2 text-sm outline-none focus:border-accent/60"
+            className="h-9 min-w-0 flex-1 rounded-[4px] border border-edge bg-panel px-3 text-sm outline-none transition-colors placeholder:text-muted focus:border-fg/40"
           />
           <Button onClick={ask} disabled={busy || !question.trim()}>
             {busy ? "Verifying…" : "Ask"}
@@ -109,7 +109,7 @@ export default function AskPage() {
             <button
               key={s}
               onClick={() => setQuestion(s)}
-              className="rounded-full border border-edge px-3 py-1 text-xs text-muted transition hover:border-accent/50 hover:text-white"
+              className="rounded-full border border-edge px-3 py-1 text-xs text-muted transition hover:border-fg/30 hover:text-fg"
             >
               {s}
             </button>
@@ -140,7 +140,7 @@ export default function AskPage() {
           </div>
 
           {rejected.length > 0 && (
-            <div className="mt-5 rounded-lg border border-bad/40 bg-bad/10 p-3">
+            <div className="mt-5 rounded-md border border-bad/30 bg-bad/10 p-3">
               <p className="text-xs font-medium text-bad">
                 {rejected.length} claim{rejected.length > 1 ? "s" : ""} removed before display
               </p>
@@ -172,7 +172,7 @@ export default function AskPage() {
             </Button>
           }
         >
-          <pre className="mono max-h-96 overflow-auto rounded-lg border border-edge bg-ink p-3 text-[11px] leading-relaxed">
+          <pre className="mono max-h-96 overflow-auto rounded-md border border-edge bg-ink p-3 text-[11px] leading-relaxed">
             {JSON.stringify(node.json, null, 2)}
           </pre>
         </Panel>
@@ -196,8 +196,8 @@ function ClaimLine({
 
   return (
     <div
-      className={`rounded-lg border px-3 py-2 ${
-        interpretation ? "border-edge/60 bg-ink/40" : "border-edge"
+      className={`rounded-md border px-4 py-3 ${
+        interpretation ? "border-edge/60 bg-ink" : "border-edge"
       }`}
     >
       <p className={`text-sm ${interpretation ? "italic text-muted" : ""}`}>{prose}</p>
@@ -210,7 +210,7 @@ function ClaimLine({
                 key={uuid}
                 onClick={() => onCite(uuid)}
                 title={uuid}
-                className="mono rounded border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] text-accent transition hover:bg-accent/20"
+                className="mono rounded-[4px] border border-accent/30 bg-accent/10 px-2 py-0.5 text-[11px] text-accent transition hover:bg-accent/20"
               >
                 {resolved?.policy_id ?? resolved?.kind ?? "evidence"} &middot; {uuid.slice(0, 8)}
               </button>

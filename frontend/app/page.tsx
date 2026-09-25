@@ -69,7 +69,7 @@ export default function CompilePage() {
         />
 
         {error && (
-          <p className="rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-sm text-bad">
+          <p className="rounded-md border border-bad/30 bg-bad/10 px-3 py-2 text-sm text-bad">
             {error}
           </p>
         )}
@@ -93,7 +93,7 @@ export default function CompilePage() {
                 OSCAL {validation.artifacts[0]?.oscal_version} &middot; run {validation.run_id.slice(0, 8)}
               </span>
               <button
-                className="ml-auto text-xs text-muted underline hover:text-white"
+                className="ml-auto text-xs text-muted underline underline-offset-2 hover:text-fg"
                 onClick={() => setShowLog((v) => !v)}
               >
                 {showLog ? "Hide" : "Show"} validation log
@@ -101,8 +101,8 @@ export default function CompilePage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-muted">
+              <table className="w-full text-sm whitespace-nowrap [&_td]:pr-4 [&_th]:pr-4">
+                <thead className="mono text-left text-[11px] tracking-[0.06em] text-muted uppercase">
                   <tr>
                     <th className="py-2 font-normal">Artifact</th>
                     <th className="font-normal">Size</th>
@@ -128,7 +128,7 @@ export default function CompilePage() {
             </div>
 
             {showLog && (
-              <pre className="mono max-h-60 overflow-auto rounded-lg border border-edge bg-ink p-3 text-[11px] leading-relaxed text-muted">
+              <pre className="mono max-h-60 overflow-auto rounded-md border border-edge bg-ink p-3 text-[11px] leading-relaxed text-muted">
                 {validation.artifacts
                   .map(
                     (a) =>
@@ -140,7 +140,7 @@ export default function CompilePage() {
             )}
 
             {posture?.warnings?.length ? (
-              <div className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+              <div className="rounded-md border border-warn/30 bg-warn/10 px-3 py-2 text-xs text-warn">
                 {posture.warnings.map((w) => (
                   <p key={w}>{w}</p>
                 ))}
@@ -158,7 +158,7 @@ export default function CompilePage() {
               posture.scanned_at
             ).toLocaleString()} · ScubaGear ${posture.scubagear_version}`}
           >
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Stat label="Satisfied" value={posture.passed} tone="ok" />
               <Stat label="Failing SHALL" value={posture.failed_shall} tone="bad" />
               <Stat label="Failing SHOULD" value={posture.failed_should} tone="warn" />
@@ -170,8 +170,8 @@ export default function CompilePage() {
             </div>
 
             <div className="mt-5 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-muted">
+              <table className="w-full text-sm whitespace-nowrap [&_td]:pr-4 [&_th]:pr-4">
+                <thead className="mono text-left text-[11px] tracking-[0.06em] text-muted uppercase">
                   <tr>
                     <th className="py-2 font-normal">Product</th>
                     <th className="font-normal">Assessed</th>
@@ -202,11 +202,11 @@ export default function CompilePage() {
               {posture.top_risks.slice(0, 8).map((f) => (
                 <li
                   key={f.finding_uuid}
-                  className="flex items-start gap-3 rounded-lg border border-edge px-3 py-2"
+                  className="flex flex-wrap items-start gap-x-3 gap-y-1 rounded-md border border-edge px-4 py-3 sm:flex-nowrap"
                 >
-                  <span className="mono w-32 shrink-0 text-xs text-accent">{f.policy_id}</span>
-                  <span className="flex-1 text-sm">{f.statement}</span>
-                  <Badge tone="bad">{f.risk_score ?? "—"}</Badge>
+                  <span className="mono shrink-0 text-xs text-accent sm:w-32">{f.policy_id}</span>
+                  <span className="order-last basis-full text-sm sm:order-none sm:basis-auto sm:flex-1">{f.statement}</span>
+                  <span className="ml-auto sm:ml-0"><Badge tone="bad">{f.risk_score ?? "—"}</Badge></span>
                 </li>
               ))}
             </ul>
