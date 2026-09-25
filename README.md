@@ -55,7 +55,7 @@ git clone <repo> && cd fathom
 # 1. Fetch pinned CISA + NIST sources (~9 MB, writes SOURCES.lock.json)
 python3 scripts/fetch_sources.py
 
-# 2. Backend
+# 2. Backend -- one virtualenv, at the repo root
 python3 -m venv .venv
 .venv/bin/pip install -e "backend[dev]"
 .venv/bin/fathom sources          # verify the pinned inputs
@@ -141,8 +141,27 @@ export AZURE_OPENAI_API_KEY=...
 export AZURE_OPENAI_DEPLOYMENT=gpt-4o
 ```
 
-If the endpoint fails mid-question, Fathom falls back to grounded mode and says
-so in the response `mode`.
+If a call fails, Fathom falls back to grounded mode and names the cause in the
+response `mode` -- a rejected key, a missing deployment, exhausted quota and a
+network outage each read differently, because they need different fixes.
+
+Two gotchas worth knowing:
+
+- `AZURE_OPENAI_DEPLOYMENT` is the name **you** gave a deployment in Azure AI
+  Foundry. A resource can list hundreds of deployable models and have zero
+  deployments; that combination returns `DeploymentNotFound`.
+- `AZURE_OPENAI_ENDPOINT` accepts either the bare resource URL or the portal's
+  `…/openai/v1` form. The suffix is trimmed automatically.
+
+To check a model end to end after changing any of this:
+
+```bash
+.venv/bin/python scripts/check_llm.py
+```
+
+It runs the demo questions live and reports how much of each answer survived
+verification. It is kept out of the test suite deliberately: it makes billable
+calls and its results depend on the model, so it reports rather than asserts.
 
 ## Layout
 

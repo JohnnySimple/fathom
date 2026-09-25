@@ -17,11 +17,14 @@ dependencies = [
     # uvicorn[standard] today, and depending on that is how configuration breaks
     # the day someone installs without the [standard] extra.
     "python-dotenv>=1.0",
+    # Not optional: the analyst is a core feature, and making this an extra
+    # meant a standard install produced a Fathom that silently never used the
+    # LLM. A missing client should be an install error, not a runtime mode.
+    "openai>=1.54",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.3", "pytest-asyncio>=0.24"]
-llm = ["openai>=1.54"]
 
 [project.scripts]
 fathom = "fathom.cli:main"

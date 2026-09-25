@@ -344,6 +344,35 @@ class QueryLayer:
                 row["score_breakdown"] = json.loads(row["score_breakdown"])
         return {"count": len(rows), "poam_items": rows}
 
+    def list_unverified(self) -> dict[str, Any]:
+        """Policies with no automated check, and therefore no verdict.
+
+        These deliberately have no finding, so `list_findings` cannot reach them
+        -- without this tool the analyst has no way to answer "what could not be
+        verified?", which is exactly the question the three-state model exists
+        to make answerable. The risk UUID is the citable object.
+        """
+        rows = self._rows(
+            """SELECT r.uuid AS risk_uuid, r.policy_id, r.status, c.product,
+                      c.statement, c.criticality, c.group_name, o.uuid AS observation_uuid
+               FROM risks r
+               JOIN controls c ON c.id = r.control_id
+               LEFT JOIN observations o
+                      ON o.control_id = r.control_id AND o.run_id = r.run_id
+               WHERE r.run_id = ? AND r.unverified = 1
+               ORDER BY c.criticality DESC, r.policy_id""",
+            (self.run_id,),
+        )
+        return {
+            "count": len(rows),
+            "unverified": rows,
+            "note": (
+                "These policies have no automated ScubaGear check. They are "
+                "neither satisfied nor not-satisfied, and must not be described "
+                "as passing, failing or compliant."
+            ),
+        }
+
     def resolve_uuid(self, uuid: str) -> dict[str, Any] | None:
         """Resolve any OSCAL UUID to the object it identifies.
 
@@ -457,6 +486,13 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "properties": {"technique": {"type": "string"}},
             "required": ["technique"],
         },
+    },
+    {
+        "name": "list_unverified",
+        "description": "List the policies that have no automated check and therefore no "
+        "pass/fail verdict. Use for any question about manual checks, unverified policies, "
+        "or whether the tenant is 'fully' compliant with something.",
+        "parameters": {"type": "object", "properties": {}, "required": []},
     },
     {
         "name": "draft_poam",

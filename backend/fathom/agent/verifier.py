@@ -79,6 +79,28 @@ _NOT_SATISFIED_WORDS = {
 }
 _INTERPRETATION_PREFIX = "interpretation:"
 
+# "not compliant", "not fully compliant", "is not currently satisfied", "no
+# longer passing" -- up to three words between the negator and the status term.
+# Phrasing that explicitly declines to assign a status. This is the *correct*
+# way to describe a policy with no automated check, so it must not be read as
+# asserting one -- "neither satisfied nor not-satisfied" contains both status
+# words and would otherwise be rejected for saying exactly the right thing.
+_DECLINES_STATUS = re.compile(
+    r"neither\s+satisfied\s+nor\s+not[-\s]?satisfied"
+    r"|no\s+automated\s+check"
+    r"|not\s+(?:be\s+)?(?:automatically\s+)?verified(?:\s+either\s+way)?"
+    r"|cannot\s+be\s+(?:confirmed|verified|determined)"
+    r"|could\s+not\s+be\s+(?:confirmed|verified|determined)"
+    r"|requires?\s+manual\s+(?:review|verification)"
+    r"|unverified",
+    re.I,
+)
+
+_NEGATED_STATUS = re.compile(
+    r"\b(?:not|never|no longer|isn't|is not|aren't|are not|fails to be)\s+"
+    r"(?:\w+\s+){0,3}?(?:compliant|satisfied|conformant|passing|passes|met)\b"
+)
+
 # Numbers that carry no factual weight and would otherwise create noise.
 _TRIVIAL_NUMBERS = {0.0, 1.0, 2.0}
 
@@ -167,6 +189,53 @@ def collect_numbers(value: Any, into: set[float]) -> None:
             collect_numbers(item, into)
 
 
+_RULE_LINE = re.compile(r"^\s*([-*_])\s*\1\s*\1[\s\-*_]*$")
+_LIST_START = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+|#{1,6}\s+)")
+_MD_NOISE = re.compile(r"(\*\*|__|[`*_#>]|^\s*[-*+]\s+|^\s*\d+[.)]\s+)")
+
+
+def segment_claims(answer: str) -> list[tuple[str, int, bool]]:
+    """Split an answer into atomic claims, tolerating markdown.
+
+    A chat model asked for a security summary returns headings, horizontal
+    rules, bold runs and numbered lists. Splitting that on sentence boundaries
+    alone produces one enormous "claim" spanning a whole list, so a single bad
+    line condemns a dozen good ones -- and splitting purely on newlines does the
+    opposite, orphaning the continuation line that carries the citation.
+
+    So the text is first grouped into chunks: a list item or heading starts a
+    new chunk, and its indented continuation lines stay with it. Each chunk is
+    then flattened, stripped of markdown, and sentence-split.
+    """
+    # Each chunk records whether it is a list item. That flag governs citation
+    # inheritance later: a bullet is one unit of meaning, a prose paragraph is
+    # not.
+    chunks: list[tuple[list[str], bool]] = []
+    for line in answer.splitlines():
+        if not line.strip() or _RULE_LINE.match(line):
+            chunks.append(([], False))  # blank line or rule ends the current chunk
+            continue
+        if _LIST_START.match(line) or not chunks or not chunks[-1][0]:
+            chunks.append(([line], bool(_LIST_START.match(line))))
+        else:
+            chunks[-1][0].append(line)
+
+    claims: list[tuple[str, int, bool]] = []
+    index = 0
+    for lines, is_item in chunks:
+        if not lines:
+            continue
+        flat = " ".join(part.strip() for part in lines)
+        flat = _MD_NOISE.sub("", flat).strip()
+        if not flat:
+            continue
+        for sentence in _SENTENCE_SPLIT.split(flat):
+            if sentence.strip():
+                claims.append((sentence.strip(), index, is_item))
+        index += 1
+    return claims
+
+
 def _is_factual(sentence: str) -> bool:
     """Whether a sentence asserts something about the tenant.
 
@@ -176,6 +245,11 @@ def _is_factual(sentence: str) -> bool:
     if not stripped or stripped.endswith("?"):
         return False
     if stripped.lower().startswith(_INTERPRETATION_PREFIX):
+        return False
+    # A lead-in announcing what follows ("Here are the facts:") asserts nothing
+    # about the tenant. Requiring a citation for it produces a rejection that
+    # makes the verifier look wrong rather than making the answer safer.
+    if stripped.endswith(":") and not UUID_RE.search(stripped):
         return False
     return True
 
@@ -191,12 +265,26 @@ def _status_words(sentence: str) -> tuple[bool, bool]:
     ("A is not-satisfied but B is satisfied") correctly.
     """
     lowered = sentence.lower()
+
+    # An explicit refusal to assign a status is not a status assertion.
+    if _DECLINES_STATUS.search(lowered):
+        return False, False
+
     says_failing = False
     remainder = lowered
+
+    # Negations first, longest phrase first. The regex catches hedged forms a
+    # fixed phrase list misses: "not fully compliant" does not contain the
+    # substring "not compliant", so without this it reads as a claim of
+    # compliance -- precisely backwards.
+    for match in reversed(list(_NEGATED_STATUS.finditer(remainder))):
+        says_failing = True
+        remainder = remainder[: match.start()] + " " + remainder[match.end() :]
     for phrase in sorted(_NOT_SATISFIED_WORDS, key=len, reverse=True):
         if phrase in remainder:
             says_failing = True
             remainder = remainder.replace(phrase, " ")
+
     says_satisfied = any(w in remainder for w in _SATISFIED_WORDS)
     return says_satisfied, says_failing
 
@@ -212,12 +300,31 @@ def verify_answer(
     for output in tool_outputs:
         collect_numbers(output, allowed_numbers)
 
-    sentences = [s.strip() for s in _SENTENCE_SPLIT.split(answer.strip()) if s.strip()]
+    segmented = segment_claims(answer)
+
+    # A model routinely writes a bullet as "MS.AAD.7.2v1 is not-satisfied. This
+    # exposes T1098 [uuid]." -- one list item, the citation on its second
+    # sentence. A bullet is a single unit of meaning, so its sentences inherit
+    # the UUIDs cited anywhere within it.
+    #
+    # Strictly list items only. Allowing inheritance across a prose paragraph
+    # would let any uncited sentence borrow its neighbour's citation, which
+    # silently disables the uncited-claim check -- the opposite of the point.
+    # Verification is not weakened either way: an inherited UUID is still
+    # resolved and still status-checked against what it resolves to.
+    chunk_citations: dict[int, list[str]] = {}
+    for sentence, chunk, is_item in segmented:
+        if not is_item:
+            continue
+        if found := UUID_RE.findall(sentence):
+            chunk_citations.setdefault(chunk, []).extend(found)
+
     claims: list[Claim] = []
 
-    for sentence in sentences:
-        citations = UUID_RE.findall(sentence)
-        claim = Claim(text=sentence, citations=citations)
+    for sentence, chunk, _is_item in segmented:
+        own = UUID_RE.findall(sentence)
+        citations = own or chunk_citations.get(chunk, [])
+        claim = Claim(text=sentence, citations=list(dict.fromkeys(citations)))
 
         if not _is_factual(sentence):
             claim.verdict = ClaimVerdict.INTERPRETATION
@@ -246,9 +353,19 @@ def verify_answer(
 
         # 2. Asserted status must match the cited evidence.
         says_satisfied, says_failing = _status_words(sentence)
+        declines = bool(_DECLINES_STATUS.search(sentence.lower()))
         conflict = None
         for resolved in claim.resolved:
             status = resolved.get("oscal_status")
+            if declines and status is not None:
+                # Calling a policy unverifiable when ScubaGear did reach a
+                # verdict is its own misstatement -- usually one that buries a
+                # real failure behind "needs manual review".
+                conflict = (
+                    f"{resolved.get('policy_id')} was verified and is {status}, but the "
+                    f"sentence describes it as unverified"
+                )
+                continue
             if status is None:
                 # Unverified policies are neither; claiming either is a conflict.
                 if resolved.get("kind") == "risk" and resolved.get("unverified"):
@@ -294,7 +411,7 @@ def verify_answer(
 
     # If nothing survived but the model did say something, the answer is not
     # salvageable by editing -- it needs regenerating once.
-    regenerate = bool(sentences) and not kept
+    regenerate = bool(segmented) and not kept
 
     return VerificationResult(
         claims=claims, verified_answer=verified_answer, regenerate=regenerate

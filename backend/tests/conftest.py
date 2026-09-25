@@ -17,6 +17,20 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(autouse=True)
+def _offline_llm(monkeypatch):
+    """Force grounded mode for the whole suite.
+
+    Once a developer has a working .env, config picks it up and every test that
+    touches the analyst starts calling Azure -- turning a deterministic suite
+    into a slow, billable one whose results depend on what the model felt like
+    saying. Fathom's own logic is what these tests are for; live-model
+    behaviour is checked separately by `scripts/check_llm.py`.
+    """
+    monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
+    monkeypatch.delenv("AZURE_OPENAI_API_KEY", raising=False)
+
+
 @pytest.fixture(scope="session")
 def bundle():
     return load_sources()

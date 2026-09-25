@@ -79,6 +79,7 @@ class Analyst:
             "controls_for_concept": query.controls_for_concept,
             "nist_impact": query.nist_impact,
             "attack_exposure": query.attack_exposure,
+            "list_unverified": lambda **kw: query.list_unverified(),
             "draft_poam": query.draft_poam,
             "diff_runs": query.diff_runs,
         }
@@ -91,7 +92,7 @@ class Analyst:
                 result = self._answer_live(question)
             except Exception as exc:  # noqa: BLE001 - the demo must not die on this
                 result = self._answer_grounded(question)
-                result.mode = f"grounded (LLM unavailable: {type(exc).__name__})"
+                result.mode = f"grounded ({_diagnose(exc)})"
         else:
             result = self._answer_grounded(question)
         result.latency_ms = int((time.monotonic() - started) * 1000)
@@ -142,6 +143,12 @@ class Analyst:
             message = response.choices[0].message
             if not message.tool_calls:
                 raw = message.content or ""
+                # Keep the assistant's reply in the transcript. Without it the
+                # history ends on a `tool` message, and the regeneration nudge
+                # below then puts `user` straight after `tool`. OpenAI tolerates
+                # that; Mistral rejects it outright with
+                # invalid_request_message_order.
+                messages.append({"role": "assistant", "content": raw})
                 break
             messages.append(message.model_dump(exclude_none=True))
             for call in message.tool_calls:
@@ -160,6 +167,12 @@ class Analyst:
                 )
         else:
             raw = "I could not complete this question within the tool-call budget."
+
+        if not calls:
+            # The model answered without consulting a single tool, so nothing it
+            # said can be grounded. That is an out-of-scope question, and a
+            # scoped refusal is a better answer than a stripped-empty one.
+            return self._refuse(question)
 
         result = self._finalize(question, raw, calls, mode="live")
 
@@ -212,7 +225,7 @@ class Analyst:
             # Several keyword groups can select the same tool ("compliant" and
             # "fully" both want posture_summary); calling it twice would repeat
             # the whole answer back to the user.
-            signature = (name, tuple(sorted(kwargs.items())))
+            signature = (name, json.dumps(kwargs, sort_keys=True, default=str))
             if signature in seen:
                 return
             seen.add(signature)
@@ -230,6 +243,7 @@ class Analyst:
         if any(w in haystack for w in ("summary", "posture", "overall", "how many", "compliant", "status")):
             call("posture_summary")
         if any(w in haystack for w in ("manual", "unverified", "not checked", "fully")):
+            call("list_unverified")
             call("posture_summary")
         if any(w in haystack for w in ("fail", "failing", "worst", "top", "risk")):
             call("list_findings", state="fail", criticality="SHALL", limit=5)
@@ -251,10 +265,12 @@ class Analyst:
         return f"{text.rstrip().rstrip('.')} [{uuid}]."
 
     def _refuse(self, question: str) -> AnswerResult:
+        # One sentence, so the whole refusal is labelled interpretation and none
+        # of it is stripped for lacking a citation it could never have.
         text = (
-            "Interpretation: I cannot answer that from this scan. Fathom answers questions "
-            "about the SCuBA policy results, NIST 800-53 mappings, ATT&CK exposure and POA&M "
-            "for the compiled run only. Try one of: "
+            "Interpretation: I cannot answer that from this scan -- Fathom covers only the "
+            "SCuBA policy results, NIST 800-53 mappings, ATT&CK exposure and POA&M for the "
+            "compiled run, so you could instead ask: "
             + "; ".join(REFUSAL_SUGGESTIONS[:3])
         )
         verification = verify_answer(text, query=self.query, tool_outputs=[])
@@ -298,6 +314,36 @@ class Analyst:
             verification=verification,
             tool_calls=calls,
         )
+
+
+def _diagnose(exc: Exception) -> str:
+    """Turn a failed LLM call into something the reader can act on.
+
+    Every failure used to read "LLM unavailable", which made a missing package,
+    a rejected key and a genuine outage indistinguishable -- so the one that was
+    a five-second fix looked like an Azure problem.
+    """
+    if isinstance(exc, ModuleNotFoundError):
+        return (
+            f"{exc.name} is not installed in this environment -- "
+            f"run: pip install -e backend"
+        )
+    name = type(exc).__name__
+    status = getattr(exc, "status_code", None)
+    if name == "AuthenticationError" or status == 401:
+        return "Azure rejected AZURE_OPENAI_API_KEY"
+    if name == "PermissionDeniedError" or status == 403:
+        return "Azure denied access to this deployment"
+    if name == "NotFoundError" or status == 404:
+        return (
+            "deployment not found -- check AZURE_OPENAI_DEPLOYMENT names a real "
+            "deployment, not just a model in the catalogue"
+        )
+    if name == "RateLimitError" or status == 429:
+        return "Azure rate limit or quota exhausted"
+    if name == "BadRequestError" or status == 400:
+        return f"request rejected by the model: {str(exc)[:120]}"
+    return f"LLM unavailable: {name}"
 
 
 # Concept keywords -> ATT&CK technique, for grounded routing only. The live
@@ -381,6 +427,16 @@ def _render(call: ToolCall) -> list[str]:
             out.append(
                 f"NIST 800-53 control {row['nist_control']} ({row['title']}) is affected by "
                 f"failing policy {policies} {uuids}".rstrip() + "."
+            )
+
+    elif call.name == "list_unverified":
+        for row in data.get("unverified", [])[:8]:
+            out.append(
+                Analyst._cite(
+                    f"{row['policy_id']} ({row['product']}) has no automated check and was "
+                    f"not verified either way: {requirement_sentence(row['statement'])}",
+                    row["risk_uuid"],
+                )
             )
 
     elif call.name == "draft_poam":
