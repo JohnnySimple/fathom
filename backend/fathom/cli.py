@@ -133,6 +133,74 @@ def cmd_ask(args: argparse.Namespace) -> int:
         return 0
 
 
+def cmd_verify(args: argparse.Namespace) -> int:
+    """Put a claim through the verifier and show the verdict.
+
+    The analyst is only one source of claims. Being able to hand the verifier an
+    arbitrary sentence makes it demonstrable on demand instead of only when a
+    model happens to get something wrong -- which, encouragingly, is rare.
+    """
+    from fathom.agent.verifier import ClaimVerdict, verify_answer
+
+    with session() as conn:
+        run_id = args.run or _latest_run(conn)
+        if not run_id:
+            print("no compiled runs; try: fathom compile --sample", file=sys.stderr)
+            return 1
+        query = QueryLayer(conn, run_id)
+        tools = [query.posture_summary(), query.list_findings(limit=50)]
+
+        claims = [args.claim] if args.claim else _adversarial_suite(conn, run_id)
+
+        for claim_text in claims:
+            result = verify_answer(claim_text, query=query, tool_outputs=tools)
+            for claim in result.claims:
+                ok = claim.verdict in (ClaimVerdict.CONFIRMED, ClaimVerdict.INTERPRETATION)
+                mark = f"{GREEN}ACCEPTED{RESET}" if ok else f"{RED}REJECTED{RESET}"
+                print(f"  {mark}  {DIM}{claim.verdict.value}{RESET}")
+                print(f"            {claim.text[:96]}")
+                if claim.reason:
+                    print(f"            {RED}-> {claim.reason}{RESET}")
+                elif claim.resolved:
+                    node = claim.resolved[0]
+                    print(f"            {DIM}-> resolves to {node['kind']} "
+                          f"{node.get('policy_id') or ''}{RESET}")
+                print()
+    return 0
+
+
+def _adversarial_suite(conn, run_id: str) -> list[str]:
+    """Claims built from this run's real data: some true, some false."""
+    failing = conn.execute(
+        "SELECT uuid, policy_id FROM findings "
+        "WHERE run_id=? AND oscal_status='not-satisfied' ORDER BY policy_id LIMIT 1",
+        (run_id,),
+    ).fetchone()
+    passing = conn.execute(
+        "SELECT uuid, policy_id FROM findings "
+        "WHERE run_id=? AND oscal_status='satisfied' ORDER BY policy_id LIMIT 1",
+        (run_id,),
+    ).fetchone()
+    manual = conn.execute(
+        "SELECT uuid, policy_id FROM risks WHERE run_id=? AND unverified=1 LIMIT 1",
+        (run_id,),
+    ).fetchone()
+
+    # A single transposed character -- the exact failure seen from a live model.
+    corrupted = failing["uuid"][:9] + ("0" if failing["uuid"][9] != "0" else "1") + failing["uuid"][10:]
+
+    return [
+        f"{failing['policy_id']} is not-satisfied [{failing['uuid']}].",
+        f"{passing['policy_id']} is satisfied [{passing['uuid']}].",
+        f"This tenant is fully compliant and {failing['policy_id']} is satisfied "
+        f"[{failing['uuid']}].",
+        f"{failing['policy_id']} is not-satisfied [{corrupted}].",
+        f"{manual['policy_id']} is compliant [{manual['uuid']}].",
+        f"There are 999 failing SHALL requirements [{run_id}].",
+        "Every control in this tenant passed.",
+    ]
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -183,6 +251,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("question")
     p.add_argument("--run", help="run ID (defaults to most recent)")
     p.set_defaults(func=cmd_ask)
+
+    p = sub.add_parser("verify", help="put a claim through the verifier")
+    p.add_argument("claim", nargs="?", help="claim to verify; omit to run the adversarial suite")
+    p.add_argument("--run", help="run ID (defaults to most recent)")
+    p.set_defaults(func=cmd_verify)
 
     p = sub.add_parser("export", help="write OSCAL artifacts to a directory")
     p.add_argument("--out", default="./artifacts/export")
